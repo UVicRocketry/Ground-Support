@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Component, useEffect, useRef, useState } from 'react';
 import {
 	Button,
 	InputAdornment,
@@ -9,12 +9,18 @@ import {
 	DialogTitle,
 	Dialog,
 	DialogActions,
-	DialogContent
-	
+	DialogContent,
+	InputLabel,
+	Select,
+	Box,
+	Chip,
+	OutlinedInput
 } from '@mui/material';
-import { FileUpload } from '@mui/icons-material';
+import { Add, FileUpload, NetworkLockedRounded } from '@mui/icons-material';
 import { IRocket } from '../utils/entities';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
+import ComponentModal from './modals/ComponentModal';
+import { IComponentModel } from '../../../services/server/src/models/ComponentModel';
 
 interface RocketProfileProps {
 	rocketProfileId?: string;
@@ -27,6 +33,10 @@ interface IRocketDetails {
 	result: IRocket;
 }
 
+interface IComponentDetails {
+	results: IComponentModel[];
+}
+
 const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfileProps) => {
 	const [name, setName] = useState<string>();
 	const [motor, setMotor] = useState<string>();
@@ -34,6 +44,11 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 	const [motorType, setMotorType] = useState<string>('');
 	const [rocketClass, setRocketClass] = useState<string>('');
 	const [height, setHeight] = useState<number>();
+	const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
+	const [showComponentModal, setShowComponentModal] = useState<boolean>(false);
+	const [componentList, setComponentList] = useState<IComponentModel[]>([]);
+	const componentIdToName = useRef<{ [key: string]: string }>({});
+	const newRocketData = useRef<boolean>(false);
 	// POST or PATCH data depending on if were creating a new rocket or editing a old one
 	const save = async () => {
 		const payload = {
@@ -42,7 +57,8 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 			Motor: motor,
 			MotorType: motorType,
 			Name: name,
-			Mass: mass
+			Mass: mass,
+			Components: selectedComponents
 		};
 		if (props.rocketProfileId) {
 			await axios.patch(`http://127.0.0.1:9090/rocket/${props.rocketProfileId}`, payload);
@@ -54,7 +70,7 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 	const [editMode, setEditMode] = useState<boolean>(props.rocketProfileId !== '-1');
 
 	useEffect(() => {
-		setEditMode(props.rocketProfileId !== '')
+		setEditMode(props.rocketProfileId !== '');
 		// Reset State
 		setHeight(NaN);
 		setMass(NaN);
@@ -62,24 +78,48 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 		setMotor('');
 		setName('');
 		setMotorType('');
+		setComponentList([]);
+		componentIdToName.current = {};
 		async function getRocketDetails() {
-			if (props.rocketProfileId) {
-				const response = await axios.get<IRocketDetails>(
+			if (props.rocketProfileId || newRocketData.current) {
+				const rocketResponse = await axios.get<IRocketDetails>(
 					`http://127.0.0.1:9090/rocket/${props.rocketProfileId}`
 				);
-				const data = response.data.result;
+				const componentResponse = await axios.get<IComponentDetails>(`http://127.0.0.1:9090/component`);
+				const data = rocketResponse.data.result;
+				const componentData = componentResponse.data.results;
+				componentData.forEach((component: IComponentModel) => {
+					componentIdToName.current[component._id] = component.Name;
+				});
+				setComponentList(componentData);
 				setHeight(data.Height);
 				setMass(data.Mass);
 				setRocketClass(data.Class);
 				setMotor(data.Motor);
 				setName(data.Name);
 				setMotorType(data.MotorType);
-				return response.data;
+				return rocketResponse.data;
 			}
 		}
 		getRocketDetails();
 	}, [props.rocketProfileId]);
 
+	useEffect(() => {
+		async function refreshComponentList() {
+			setComponentList([]);
+			componentIdToName.current = {};
+			const componentResponse = await axios.get<IComponentDetails>(`http://127.0.0.1:9090/component`);
+			const componentData = componentResponse.data.results;
+			componentData.forEach((component: IComponentModel) => {
+				componentIdToName.current[component._id] = component.Name;
+			});
+			setComponentList(componentData);
+		}
+		if (newRocketData.current) {
+			refreshComponentList();
+			newRocketData.current = false;
+		}
+	}, [newRocketData.current]);
 	const handleChange = (e: any, setState: Function) => {
 		if (!editMode) {
 			setEditMode(true);
@@ -121,6 +161,51 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 								SVG
 							</Button>
 						</Stack>
+						<Stack direction="row" spacing={3}>
+							<FormControl sx={{ width: '70%', display: 'inline-block' }} variant="filled">
+								<InputLabel id="component-source-label">Components</InputLabel>
+								<Select
+									id="component-source"
+									variant="outlined"
+									multiple
+									fullWidth
+									value={selectedComponents}
+									onChange={(e) => handleChange(e, setSelectedComponents)}
+									renderValue={(selected: string[]) => (
+										<Box
+											sx={{
+												display: 'flex',
+												flexWrap: 'wrap',
+												gap: 0.5,
+												transform: 'translateY(20%)'
+											}}
+										>
+											{selected.map((value: string) => (
+												<Chip key={value} label={componentIdToName.current[value]} />
+											))}
+										</Box>
+									)}
+									labelId="component-source-label"
+								>
+									{componentList.map((component) => (
+										<MenuItem key={component._id} value={component._id}>
+											{component.Name}
+										</MenuItem>
+									))}
+								</Select>
+							</FormControl>
+							<Button
+								variant="contained"
+								component="label"
+								className={'button'}
+								onClick={() => setShowComponentModal(true)}
+								startIcon={<Add />}
+								size="small"
+								sx={{ width: '30%' }}
+							>
+								Components
+							</Button>
+						</Stack>
 						<TextField
 							sx={{ minWidth: '100%' }}
 							id="mass"
@@ -159,10 +244,18 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 							InputLabelProps={{ shrink: editMode }}
 							label="Class"
 						>
-							<MenuItem key='10K' value='10K'>10K</MenuItem>
-							<MenuItem key='30K' value='30K'>30K</MenuItem>
-							<MenuItem key='60K' value='60K'>60K</MenuItem>
-							<MenuItem key='100K' value='100K'>100K+</MenuItem>
+							<MenuItem key="10K" value="10K">
+								10K
+							</MenuItem>
+							<MenuItem key="30K" value="30K">
+								30K
+							</MenuItem>
+							<MenuItem key="60K" value="60K">
+								60K
+							</MenuItem>
+							<MenuItem key="100K" value="100K">
+								100K+
+							</MenuItem>
 						</TextField>
 						<Stack direction="row" spacing={2}>
 							<TextField
@@ -175,9 +268,15 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 								defaultValue={motorType}
 								onChange={(e) => handleChange(e, setMotorType)}
 							>
-								<MenuItem key='Solid' value='Solid'>Solid</MenuItem>
-								<MenuItem key='Liquid' value='Liquid'>Liquid</MenuItem>
-								<MenuItem key='Hybrid' value='Hybrid'>Hybrid</MenuItem>
+								<MenuItem key="Solid" value="Solid">
+									Solid
+								</MenuItem>
+								<MenuItem key="Liquid" value="Liquid">
+									Liquid
+								</MenuItem>
+								<MenuItem key="Hybrid" value="Hybrid">
+									Hybrid
+								</MenuItem>
 							</TextField>
 							<TextField
 								size="small"
@@ -198,6 +297,14 @@ const RocketProfilePopup: React.FC<RocketProfileProps> = (props: RocketProfilePr
 				<Button onClick={props.onClose}>Cancel</Button>
 				<Button onClick={saveProfile}>Save</Button>
 			</DialogActions>
+			<ComponentModal
+				isOpen={showComponentModal}
+				onSave={() => {
+					newRocketData.current = true;
+					setShowComponentModal(false);
+				}}
+				onClose={() => setShowComponentModal(false)}
+			/>
 		</Dialog>
 	);
 };

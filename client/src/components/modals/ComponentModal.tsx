@@ -188,7 +188,6 @@ const ComponentModal = (props: ComponentModalProps) => {
 									fullWidth
 									value={sourceTypes}
 									onChange={(e) => handleChange(e, setSourceTypes)}
-									input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
 									renderValue={(selected: string[]) => (
 										<Box
 											sx={{

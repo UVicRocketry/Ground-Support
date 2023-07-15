@@ -13,7 +13,14 @@ export interface IComponent {
     DataConfig: typeof DataConfigSchema;
 };
 
-export interface IComponentModel extends IComponent, Document { };
+export interface IComponentModel extends IComponent, Document { 
+    _id: string;
+    Name: string;
+    Details: string;
+    TelemetrySource: TelemetrySource;
+    createdAt: string;
+    updatedAt: string;
+};
 
 const ComponentModel: Schema = new Schema(
     {
