@@ -1,6 +1,6 @@
 import { memo } from 'react';
 
-import InstrumentationSymbol from '../../../static/instrumentation/instrumentationSymbol.svg';
+import InstrumentationSymbol from '../../../static/instrumentation/InstrumentationSymbol.svg';
 import { Stack, Typography } from '@mui/material';
 import { Handle, Position } from 'reactflow';
 
