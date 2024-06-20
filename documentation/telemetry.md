@@ -9,17 +9,19 @@ The Telemetry Backend implementation runs a socket server as well as a receiving
 
 ### Running RTL-FM and Direwolf
 1. Plug in RTL-SDR to The PC.
-2. Edit telemtry.py to make desired API call.
-3. Set up Big Red Bee to transmit on a certain frequency.
-4. Make sure Big Red Bee is transmitting using a receiving software on the PC. I used
+2. Set up Big Red Bee to transmit on a certain frequency.
+3. Make sure Big Red Bee is transmitting using a receiving software on the PC. I used
    [SDR Sharp](https://airspy.com/download/) and that worked well. Just download the program and run both .bat files, then start the application.
-5. Open WSL instance and navigate `Ground-Support`
-6. Navigate to `services/telemetry/tools`
-7. Run following command. This will receive and decode signals and print output to terminal, so debugging can be done.
-\
-@JackCotter - double check this command
+4. Open WSL instance and navigate `Ground-Support`
+5. Navigate to `services/telemetry/tools`
+6. Run following command. This will receive and decode signals and print output to terminal, so debugging can be done.
+
     ```bash 
     rtl_fm -f 441.35M -r 24k -s 260k -o 4 -p 93 -g 49.6 - | direwolf -n > 1 -r 24000 -b 16 -
+    ```
+    OR
+    ```
+    ./decode.sh <frequency (optional)>
     ```
 
 9. Go outside and wait for telemetry lock (~3mins). When Telemetry is locked on output will look like what is seen on
@@ -29,7 +31,11 @@ The Telemetry Backend implementation runs a socket server as well as a receiving
 11. **smiles*\*! "No way it's working perfectly!"
 
 ### Run for Development
-@JackCotter Create a list of steps to run the telemetry solely in the rust environment
+1. install rust https://www.rust-lang.org/tools/install
+1. cd into `services/telemetry`
+2. run `cargo build`
+3. run `cargo run`
+4. Horay! Should be running.
 
 
 ### Run for production
