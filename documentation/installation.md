@@ -207,5 +207,35 @@ TBD (@JackCotter) once rust backend is more functional
 
 ## Non-technical installation
 
-download the newest release ... (update when there is a release)
+### 1. Install WSL
+1. `Open terminal`
+2. `wsl --install or wsl --install -d Ubuntu --web-download`
+   
+### 2. Install Docker
+1. `sudo apt-get update` 
+2. `sudo apt-get install ca-certificates curl gnupg lsb-release` 
+3. `sudo mkdir -p /etc/apt/keyrings` 
+4. `curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg` 
+5. `echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null` 
+6. `sudo apt-get update` 
+7. `sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin`
+   
+### 3.Git Install
+1. `sudo apt-get install git`
+2. `git config --global user.name "Your Name"`
+3. `git config --global user.email "youremail@domain.com"`
+
+### 4.Install Rust
+1. `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+2. `sudo apt-get update`
+3. `sudo apt install build-essential`
+   
+### 5.Install Ground-Support
+1. `https://github.com/UVicRocketry/Ground-Support.git`
+   
+### 6.Docker Start Up
+1. `sudo service docker start`
+2. `docker compose build`
+3. `docker compose up`
+
 

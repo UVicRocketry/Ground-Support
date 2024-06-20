@@ -22,6 +22,8 @@ import MissionConfig from '../components/MissionConfig';
 import api from '../services/api';
 import _ from 'lodash';
 import { IRocketPopulated } from '../utils/entities';
+import { ViewKeys, useViewProvider } from '../utils/viewProviderContext';
+import { useActiveMission } from '../utils/ActiveMissionContext';
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -49,15 +51,11 @@ function TabPanel(props: TabPanelProps) {
         );
     }
 
-interface RocketDetailsProps {
-    rocketID: string;
-    openActiveMission: (view: string) => void;
-    setActiveView: (key: string) => void;
-    toDataConfig: (id: string) => void;
-}
+export default function RocketDetailsView() {
 
-export default function RocketDetailsView(props: RocketDetailsProps) {
-    const { openActiveMission, setActiveView, toDataConfig } = props;
+    const activeMissionContext = useActiveMission();
+    const viewProviderContext = useViewProvider();
+
 	const colors: string[] = [
 		'rgba(255, 197, 87, 1)',
 		'rgba(214, 91, 79, 1)',
@@ -66,13 +64,14 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
 	];
 
 	const breadCrumbs: Breadcrumb[] = [
-		{ name: 'Rocket Selection', path: '/', active: false },
-		{ name: 'Rocket Details', path: '/', active: true }
+        { name: 'Ground Support', viewKey: ViewKeys.PLATFORM_SELECTION_KEY, active: false },
+		{ name: 'Rocket Selection', viewKey: ViewKeys.ROCKET_SELECT_KEY, active: false },
+		{ name: 'Rocket Details', viewKey: ViewKeys.ROCKET_DETAILS_KEY, active: true }
 	];
 
     //value is for tab things
     const [value, setValue] = useState<number>(0);
-    const [rocketId, setRocketId] = useState<string>(props.rocketID);
+    const [rocketId, setRocketId] = useState<string>(activeMissionContext.rocketId);
 
     // Popup state
 	const [componentModalOpen, setComponentModalOpen] = useState<boolean>(false);
@@ -80,25 +79,19 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
     const [isMissionConfigOpen, setIsMissionConfigOpen] = useState(false);
 
     const [rocketData, setRocketData] = useState<IRocketPopulated>({} as IRocketPopulated);
-    const [selectedMission, setSelectedMission] = useState<string>('');
     const [isMissionActive, setIsMissionActive] = useState<boolean>(false);
     
     const handleSelectedMission = (mission: string) => {
-        setSelectedMission(mission);
-        openActiveMission(mission);
-        setActiveView('START_UP')
+        activeMissionContext.updateMissionId(mission);
+        viewProviderContext.updateViewKey(ViewKeys.ACTIVE_FLIGHT_KEY);
     };
 
-    const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    const handleChange = (_: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
     };
 
     const handleRocketPopupClose = () => {
         setIsRocketPopUpOpen(false);
-    };
-
-    const handleContinueMission = () => {
-        openActiveMission("START_UP");
     };
 
     const handleRocketPopupSave = () => {
@@ -109,6 +102,7 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
     const refresh = () => {
         _.delay(getRocket, 500);
     };
+
     const getRocket = useCallback(async () => {
         const response = await api.getRocket(rocketId);
         const rocket = response.data as IRocketPopulated;
@@ -134,14 +128,14 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
 		<Box sx={{ width: '100vw', height: '100vh' }}>
 			<Stack
                 height={'100%'}
-                padding={3}
+                padding={4}
 				direction="column"
 				gap={3}
                 overflow={'none'}
 			>
 				{/* Page Header */}
 				<Grid item >
-					<Header breadCrumbs={breadCrumbs} />
+					<Header icon={'ROCKET_MONITORING'} breadCrumbs={breadCrumbs} />
 				</Grid>
                 {/* Rocket Title */}
                 <Grid item>
@@ -149,7 +143,7 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
                         <Stack direction="row" alignItems={'center'} justifyContent={'space-between'}>
                             <Stack direction="row" alignItems={'center'} spacing={2}>
                                 <RocketLaunchIcon color={'primary'} /> 
-                                <Typography align='left' variant='h6'>
+                                <Typography align='left' variant='h5'>
                                     {rocketData?.Name || 'Rocket Not found'}
                                 </Typography>
                             </Stack>
@@ -157,7 +151,7 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
                                 variant="contained" 
                                 size={'large'} 
                                 startIcon={<LaunchIcon/>} 
-                                onClick={handleContinueMission} 
+                                onClick={() => console.log('Start Mission')} 
                                 disabled={!isMissionActive}
                             >
                                 Continue Mission
@@ -198,7 +192,9 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
                         </TabPanel>
                         <TabPanel value={value} index={1}>
                             <ComponentsTab
-                                dataConfigClick={toDataConfig}
+                                dataConfigClick={() => {
+                                    viewProviderContext.updateViewKey(ViewKeys.DATA_CONFIG_KEY);
+                                }}
                                 rocket={rocketData} 
                                 refresh={() => refresh} 
                                 componentIds={rocketData.Components ? rocketData.Components.map((c) => c._id as string) : []} 
@@ -217,7 +213,7 @@ export default function RocketDetailsView(props: RocketDetailsProps) {
                         isOpen={isRocketPopUpOpen} 
                         onSave={handleRocketPopupSave} 
                         onClose={handleRocketPopupClose} 
-                        rocketProfileId={props.rocketID}
+                        rocketProfileId={rocketId}
                     />
                     <MissionConfig
                         isOpen={isMissionConfigOpen}

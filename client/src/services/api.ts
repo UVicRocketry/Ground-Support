@@ -126,6 +126,35 @@ async function getRocket(id: string): Promise<IApiResponse> {
 }
 
 /**
+ * @param id Id of a rocket
+ * @param payload The rocket to update type IMissionPopulation
+ * @returns The updated mission
+ */
+async function upsertRocket(id: string, payload: {}): Promise<IApiResponse> {
+    let response: AxiosResponse;
+    let data: IApiResponse = {
+        data: {} as IRocket,
+        error: {} as IError
+    } as IApiResponse;
+    
+    try {
+        response = await api.put(`/rocket/${id}`, payload);
+        data = {
+            data: response.data.result 
+                ? response.data.result 
+                : response.data.results as IRocket,
+            error: handleError(response)
+        };
+    } catch(e) {
+        const err = e as AxiosError;
+        data.error.error = true;
+        data.error.message = `Error upserting the rocket with the id ${id}. Full error:\n${err.message}`;
+    }
+
+    return data;
+}
+
+/**
  * @param payload The rocket to create type IRocket
  * @returns The created rocket
  * 
@@ -294,6 +323,7 @@ async function createMission(payload: IMission, rocket: IRocketPopulated): Promi
     } as IApiResponse;
 
     try {
+        console.log('payload', payload);
         response = await api.post('/mission', payload);
         data = {
             data: response.data.result 
@@ -302,23 +332,16 @@ async function createMission(payload: IMission, rocket: IRocketPopulated): Promi
             error: handleError(response)
         };
         const rId = rocket?._id ? rocket?._id : '';
-        const missionId = response.data._id;
-        console.log('missionId', missionId);
+        const missionId = (data.data as IMission)._id as string;
         // attach to rocket
-        if (rId !== '') {
-            const rocketPayload: IRocket = {
-                Name: rocket.Name,
-                Mass: rocket.Mass,
-                Height: rocket.Height,
-                Class: rocket.Class,
-                Motor: rocket.Motor,
-                MotorType: rocket.MotorType,
+        if (rId !== '' && missionId !== '') {
+            const rocketPayload = {
                 Missions: rocket.Missions.map(m => m._id as string),
-                Components: rocket.Components.map(c => c._id as string)
             };
             rocketPayload.Missions.push(missionId);
+
             try {
-                rocketResponse = await api.patch(`/rocket/${rId}`, rocketPayload);
+                rocketResponse = await api.put(`/rocket/${rId}`, rocketPayload);
                 rocketData = {
                     data: rocketResponse.data.result 
                         ? rocketResponse.data.result 
@@ -792,6 +815,7 @@ export default {
     getRocket,
     createRocket,
     updateRocket,
+    upsertRocket,
     deleteRocket,
     getMissions,
     getMission,

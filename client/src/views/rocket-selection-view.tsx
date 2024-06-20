@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { Grid, Chip, Stack } from '@mui/material';
 import Header, { Breadcrumb } from '../components/Header';
 import addRocket from '../static/images/AddRocket.svg';
+import RocketImage from '../static/images/Skookum1.svg';
+import { ViewKeys, useViewProvider } from '../utils/viewProviderContext';
 
 import '../styles/rocketSelection.css';
 import RocketProfilePopup from '../components/RocketProfilePopup';
 import api from '../services/api';
 import { IRocketPopulated } from '../utils/entities';
+import { useActiveMission } from '../utils/ActiveMissionContext';
 
 interface Rocket {
 	id: string;
@@ -15,12 +18,12 @@ interface Rocket {
 	active: boolean;
 }
 
-interface RocketSelectProps {
-	setCurrentView: () => void;
-	setRocketID?: (rocketID: string) => void;
-}
 
-export default function RocketSelectionView(props: RocketSelectProps) {
+
+export default function RocketSelectionView() {
+	const viewProviderContext = useViewProvider();
+	const activeMissionContext = useActiveMission();
+
 	const colors: string[] = [
 		'rgba(255, 197, 87, 1)',
 		'rgba(214, 91, 79, 1)',
@@ -28,7 +31,10 @@ export default function RocketSelectionView(props: RocketSelectProps) {
 		'rgba(69, 136, 201, 1)'
 	];
 
-	const breadCrumbs: Breadcrumb[] = [{ name: 'Rocket Selection', path: '/', active: true }];
+	const breadCrumbs: Breadcrumb[] = [
+		{ name: 'Ground Support', viewKey: ViewKeys.PLATFORM_SELECTION_KEY, active: false },
+		{ name: 'Rocket Selection', viewKey: ViewKeys.ROCKET_SELECT_KEY, active: true }
+	];
 
 	const [isOpen, setIsOpen] = useState(false);
 	const [rocketData, setRocketData] = useState<Rocket[]>([]);
@@ -62,7 +68,7 @@ export default function RocketSelectionView(props: RocketSelectProps) {
 	};
 
 	const getRocketImageURL = (data: Rocket) => {
-		return new URL(`../static/images/${data.image}`, import.meta.url).href;
+		return new URL(`../static/images/Xenia2.svg`, import.meta.url).href;
 	}
 
 	const rockets = rocketData.map((data: Rocket) => {
@@ -70,7 +76,7 @@ export default function RocketSelectionView(props: RocketSelectProps) {
 		return (
 			<div key={data.id.toString()}>
 				<Stack direction="column" spacing={1} onClick={data.active ? () => setRocket(data) : () => {}}>
-					<img src={rocketImageURL} alt="Rocket" width={60}></img>
+					<img src={RocketImage} alt="Rocket" width={40} />
 					<Chip label={data.name} color={data.active ? 'primary' : 'default'} sx={{ fontWeight: 'bold' }} />
 				</Stack>
 			</div>
@@ -88,8 +94,8 @@ export default function RocketSelectionView(props: RocketSelectProps) {
 				sx={{ height: '100%', width: '100%' }}
 			>
 				{/* Page Header */}
-				<Grid item>
-					<Header breadCrumbs={breadCrumbs} />
+				<Grid item justifyContent={'flex-start'}>
+					<Header icon='ROCKET_MONITORING' breadCrumbs={breadCrumbs} />
 				</Grid>
 
 				{/* Rocket Selection */}
@@ -107,6 +113,7 @@ export default function RocketSelectionView(props: RocketSelectProps) {
 				{colors.map((color) => {
 					return (
 						<div
+							key={color}
 							style={{
 								backgroundColor: color,
 								width: '25%',
@@ -121,7 +128,7 @@ export default function RocketSelectionView(props: RocketSelectProps) {
 				rocketProfileId={rocketProfileId}
 				isOpen={isOpen}
 				onSave={() => {
-					props.setCurrentView();
+					viewProviderContext.updateViewKey(ViewKeys.ROCKET_DETAILS_KEY);
 					setIsOpen(false);
 				}}
 				onClose={() => setIsOpen(false)}
@@ -130,8 +137,8 @@ export default function RocketSelectionView(props: RocketSelectProps) {
 			rocketProfileId={rocketProfileId}
 			isOpen={isOpen}
 			onSave={() => { 
-				props.setCurrentView();
-				if(props.setRocketID){props.setRocketID(rocketProfileId)};
+				viewProviderContext.updateViewKey(ViewKeys.ROCKET_DETAILS_KEY);
+				activeMissionContext.updateRocketId(rocketProfileId);
 				setIsOpen(false);
 			}}
 			onClose={() => setIsOpen(false)}

@@ -18,7 +18,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = (props: SettingsDialogProp
                     {/* Doesn't save Mission Name anywhere yet. */}
                     <Stack direction="row" spacing={2} alignItems="center">
 
-                        <Typography variant="h6"> Mission Name: </Typography>
+                        <Typography variant="h5"> Mission Name: </Typography>
 
                         <TextField variant="outlined" size="small" type="String"/>
 

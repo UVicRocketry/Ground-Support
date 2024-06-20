@@ -1,4 +1,4 @@
-import { Chip, Grid, Paper, Stack, Switch, Tooltip, Typography, styled } from '@mui/material';
+import { Chip, Grid, Paper, Stack, Switch, Tooltip, Typography, styled, } from '@mui/material';
 import React, { useEffect, useState } from 'react';
 
 import SensorsIcon from '@mui/icons-material/Sensors';
@@ -31,8 +31,16 @@ const InstrumentationPanel: React.FC<IProps> = (props: IProps) => {
                 gap={2}
             >
                 <InstrumentationModule title={"Run Tank"} type={InstrumentationType_t.PRESSURE}/>
+                <InstrumentationModule title={"N2O Flow"} type={InstrumentationType_t.PRESSURE}/>   
+                <InstrumentationModule title={"N2 Flow"} type={InstrumentationType_t.PRESSURE}/>
+                <InstrumentationModule title={"Injector"} type={InstrumentationType_t.PRESSURE}/>
+                <InstrumentationModule title={"Run Tank"} type={InstrumentationType_t.TEMPERATURE}/>
+                <InstrumentationModule title={"Run Tank"} type={InstrumentationType_t.MASS}/>
+                <InstrumentationModule title={"ShuntCurrent"} type={InstrumentationType_t.LOAD}/>
+                               
             </Grid>
         </Stack>
+        
     );
 };
 

@@ -31,6 +31,7 @@ import SensorsIcon from '@mui/icons-material/Sensors';
 import { IAprsTelemetryPacket } from '../../utils/TelemetryTypes';
 import Graph from '../../components/RealTimeGraph';
 import { CoordinateGrid } from '../../components/CartesianGrid';
+import { ViewKeys } from '../../utils/viewProviderContext';
 
 export default function StartUpView() {
 	const [component, setComponent] = useState<IComponent>();
@@ -52,8 +53,10 @@ export default function StartUpView() {
 	const activeContext = useActiveMission();
 
 	const breadCrumbs: Breadcrumb[] = [
-		{ name: 'New Mission', path: '/', active: false },
-		{ name: 'Start Up', path: '/', active: true }
+		{ name: "Ground Support", viewKey: ViewKeys.PLATFORM_SELECTION_KEY, active: false },
+		{ name: activeContext.rocket.Name, viewKey: ViewKeys.ROCKET_DETAILS_KEY, active: false },
+		{ name: activeContext.activeMission.Name || "New Mission", viewKey: ViewKeys.ACTIVE_FLIGHT_KEY, active: true },
+		{ name: "Start Up", viewKey: ViewKeys.ACTIVE_FLIGHT_KEY, active: true }
 	];
 
 	const [dataConfig, setDataConfig] = useState<IDataConfig>();
@@ -98,7 +101,7 @@ export default function StartUpView() {
 			<Grid container direction="column" paddingX="2rem" paddingY="2rem" gap={3}>
 				{/* Page Header */}
 				<Grid item>
-					<Header breadCrumbs={breadCrumbs} />
+					<Header icon='ROCKET_MONITORING' breadCrumbs={breadCrumbs} />
 				</Grid>
 
 				{/* Parameters Controllers */}
@@ -107,7 +110,7 @@ export default function StartUpView() {
                         <Stack direction="row" spacing={5} justifyContent={'space-between'} alignItems={'center'}>
 							<Stack direction="row" alignItems={'center'} spacing={2}>
                                 <RocketLaunchIcon sx={{ color: 'uvr.yellow' }} /> 
-                                <Typography align='left' variant='h6'>
+                                <Typography align='left' variant='h5'>
                                     {activeContext.rocket.Name || 'Mission Not found'}
                                 </Typography>
                             </Stack>

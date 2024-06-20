@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Dialog, TextField, Stack, DialogContent, Typography, Checkbox, FormControlLabel, InputAdornment, Tooltip, IconButton, DialogActions, Select, MenuItem, OutlinedInput, Box, Chip, FormControl, InputLabel  } from "@mui/material";
+import { Button, Dialog, TextField, Stack, DialogContent, Typography, Checkbox, FormControlLabel, InputAdornment, Tooltip, IconButton, DialogActions, Select, MenuItem, OutlinedInput, Box, Chip, FormControl, InputLabel, DialogTitle, Autocomplete  } from "@mui/material";
 import { IComponent, IMission, IRocket, IRocketPopulated } from "../utils/entities";
 import api from "../services/api";
 
@@ -25,19 +25,23 @@ const MenuProps = {
 
 const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) => {
     const { rocket, missionId, isOpen, onClose, onSave } = props;
-    const [missionName, setMissionName] = useState<string>();
-    const [latitude, setLatitude] = useState<number>();
-    const [longitude, setLongitude] = useState<number>();
-    const [launchDate, setLaunchDate] = useState<Date>();
-    const [altitude, setAltitude] = useState<number>();
-    const [selectedComponents, setSelectedComponents] = useState<string[]>([]);
-    const [components, setComponents] = useState<string[]>([]);
+    const [missionName, setMissionName] = useState<string | null>();
+    const [latitude, setLatitude] = useState<number | null>();
+    const [longitude, setLongitude] = useState<number | null>();
+    const [launchDate, setLaunchDate] = useState<Date | null>();
+    const [altitude, setAltitude] = useState<number | null>();
+    const [selectedComponents, setSelectedComponents] = useState<string[] | []>([]);
+    const [components, setComponents] = useState<IComponent[]>([]);
+    const [isTest, setIsTest] = useState<boolean>(false);
+
+    const [isEditMode, setIsEditMode] = useState<boolean>(false);
 
     const getComponents = useCallback(async () => {
+        console.log('rocket', rocket);
         try {
             if (rocket) {
                 rocket.Components.map( async (component: IComponent) => {
-                    setComponents((prev) => [...prev, component.Name]);
+                    setComponents((prev) => [...prev, component]);
                 });
             }
         } catch (error) {
@@ -45,32 +49,63 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
         } 
     }, []);
 
-    const handleSave = useCallback(async() => {
-        const payload: IMission = {
-            Name: missionName,
-            Date: launchDate,
-            IsTest: false,
-            IsActive: false,
-            Coordinates: {
-                Longitude: longitude,
-                Latitude: latitude
-            },
-            LaunchAltitude: altitude,
-            Published: false,
-            Components: selectedComponents
-        } as IMission;
-        if (missionId) {
-            await api.updateMission(missionId, payload);
-        } else {
-            await api.createMission(payload, rocket);
-        }
-        // const [missionData, rocketData] = response;
-        onClose();
-    }, []);
+    const handleSave = async() => {
+        const saveMission = async () => {
+            const payload = {
+                Name: missionName,
+                Date: launchDate,
+                IsTest: false,
+                IsActive: false,
+                Coordinates: {
+                    Longitude: longitude,
+                    Latitude: latitude
+                },
+                LaunchAltitude: altitude,
+                Published: false,
+                Components: selectedComponents
+            } as IMission;
 
-    const handleChange = (e: any, setState: Function) => {
-		setState(e.target.value as string);
-	};
+            console.log('payload frontend', payload)
+
+            if (missionId) {
+                await api.updateMission(missionId, payload);
+            } else {
+                await api.createMission(payload, rocket);
+            }
+        };
+        await saveMission();
+        close();
+    };
+
+    const close = () => {
+        setMissionName(null);
+        setLatitude(null);
+        setLongitude(null);
+        setLaunchDate(null);
+        setAltitude(null);
+        setSelectedComponents([]);
+        onClose();
+    }
+
+    const getMission = async () => {
+        let response;
+        if (missionId) {
+            response = await api.getMission(missionId);
+            console.log(response); 
+        }
+        const data = response.data as IMission;
+        setMissionName(data.Name);
+        setLatitude(data.Coordinates.Latitude);
+        setLongitude(data.Coordinates.Longitude);
+        setLaunchDate(new Date(data.Date));
+        setAltitude(data.LaunchAltitude as number);
+        setSelectedComponents(data.Components);
+    }
+
+    useEffect(() => {
+        getMission();
+        setIsEditMode(true);
+    }, [missionId])
 
     useEffect(() => {
         // clear the components array
@@ -80,11 +115,16 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
 
     return(
         <Dialog open={props.isOpen} fullWidth>
+            <DialogTitle sx={{ fontWeight: 600 }}>
+                Mission Configuration
+            </DialogTitle>
             <DialogContent>
                 <Stack direction="column" spacing={3} alignItems="left">
-                    <Typography variant="h4" align="left"> Mission Configuration </Typography>
                     <Stack direction="row" spacing={2} alignItems="center">
-                        <TextField 
+                        <TextField
+                            InputLabelProps={{
+                                shrink: isEditMode
+                            }} 
                             required
                             variant="outlined" 
                             type="String"
@@ -92,7 +132,9 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
                             size="small"
                             label="Mission Name"
                             value={missionName}
-                            onChange={(e) => handleChange(e, setMissionName)}
+                            onChange={(e) => {
+                                setMissionName(e.target.value as string)
+                            }}
                         />
                         <Tooltip title="Data Collected is for testing purposes">
                             <FormControlLabel 
@@ -106,6 +148,9 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
                     </Stack>
                     <Stack direction="row" spacing={2} alignItems="center">
                         <TextField 
+                            InputLabelProps={{
+                                shrink: isEditMode
+                            }} 
                             required
                             variant="outlined" 
                             type="String"
@@ -113,9 +158,14 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
                             size="small"
                             label="Mission Location (Latitude)"
                             value={latitude}
-                            onChange={(e) => handleChange(e, setLatitude)}
+                            onChange={(e) => {
+                                setLatitude(e.target.value as number);
+                            }}
                         />
                         <TextField 
+                            InputLabelProps={{
+                                shrink: isEditMode
+                            }} 
                             required
                             variant="outlined" 
                             type="String"
@@ -123,10 +173,15 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
                             size="small"
                             label="Mission Location (Longitude)"
                             value={longitude}
-                            onChange={(e) => handleChange(e, setLongitude)}
+                            onChange={(e) => {
+                                setLongitude(e.target.value as number);
+                            }}
                         />
                     </Stack>
                     <TextField 
+                        InputLabelProps={{
+                            shrink: isEditMode
+                        }} 
                         required
                         variant="outlined" 
                         type="Date"
@@ -135,9 +190,14 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
                         label="Launch Date"
                         InputLabelProps={{ shrink: true }}
                         value={launchDate}
-                        onChange={(e) => handleChange(e, setLaunchDate)}
+                        onChange={(e) => {
+                            setLaunchDate(e.target.value as Date);
+                        }}
                     />
                     <TextField 
+                        InputLabelProps={{
+                            shrink: isEditMode
+                        }} 
                         required
                         variant="outlined" 
                         type="Number"
@@ -148,55 +208,34 @@ const MissionConfig: React.FC<MissionConfigProps> = (props: MissionConfigProps) 
                             endAdornment: <InputAdornment position="end">ft</InputAdornment>,
                         }}
                         value={altitude}
-                        onChange={(e) => handleChange(e, setAltitude)}
+                        onChange={(e) => {
+                            setAltitude(e.target.value as number);
+                        }}
                     />
-                    <FormControl fullWidth variant="filled" required>
-						<InputLabel id="component-source-label">Configure Components</InputLabel>
-                        <Select
-                            id="component-source"
-                            variant="filled"
-                            multiple
-                            fullWidth
-                            value={selectedComponents}
-                            onChange={(e) => handleChange(e, setSelectedComponents)}
-                            input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
-                            // helperText="Configure components for this mission"
-                            renderValue={(selected: string[]) => (
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        flexWrap: 'wrap',
-                                        gap: 0.5,
-                                        transform: 'translateY(20%)'
-                                    }}
-                                >
-                                    {selected.map((value: string) => (
-                                        <Chip key={value} label={value} />
-                                    ))}
-                                </Box>
-                            )}
-                            sx={{
-                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                    border: 'none !important'
-                                }
-                            }}
-                            MenuProps={MenuProps}
-                            labelId="component-source-label"
-                            label="Enable Components"
-                        >
-                            {
-                            components.map((component: string, idx) => (
-                                <MenuItem key={idx} value={component}>
-                                    {component}
-                                </MenuItem>
-                            ))
-                            }
-                        </Select>
-                    </FormControl>
+                    <Autocomplete 
+                        fullWidth
+                        size="small"
+                        multiple
+                        id="tags-outlined"
+                        options={components}
+                        getOptionLabel={(option) => option.Name}
+                        filterSelectedOptions
+                        onChange={(e, value) => {
+                            setSelectedComponents(value.map((component: IComponent) => component._id as string));
+                        }}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                variant="outlined"
+                                label="Configure Components"
+                                placeholder="Select Components"
+                            />
+                        )}
+                    />
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={props.onClose}>Cancel</Button>
+                <Button onClick={close}>Cancel</Button>
                 <Button onClick={handleSave}>Save</Button>
             </DialogActions>
         </Dialog>

@@ -100,7 +100,7 @@ const ModuleStatus: React.FC<ModuleProps> = (props: ModuleProps) => {
         <Card sx={{ minWidth: 150 }}>
             <CardHeader 
                 title={module?.Name || "No Data"}
-                titleTypographyProps={{ variant: 'h6' }}
+                titleTypographyProps={{ variant: 'h5' }}
                 sx={{ padding: 2, textAlign: 'center' }} 
             />
             <CardContent sx={{ paddingBlockStart: 0, paddingBlockEnd: 0, textAlign: 'center' }}>

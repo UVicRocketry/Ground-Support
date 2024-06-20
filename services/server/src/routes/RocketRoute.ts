@@ -16,6 +16,9 @@ router.post('/', controller.create(RocketModel));
 // UPDATE a data config
 router.patch('/:id', controller.update(RocketModel));
 
+// PUT a Rocket
+router.put('/:id', controller.update(RocketModel));
+
 // DELETE a data config
 router.delete('/:id', controller.deleteOne(RocketModel));
 

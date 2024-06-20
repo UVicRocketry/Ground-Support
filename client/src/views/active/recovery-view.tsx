@@ -17,16 +17,19 @@ import Latitude from '../../utils/Latitude.svg'
 import longLat from '../../utils/coordnates-graphic.png';
 import InfoIcon from '@mui/icons-material/Info';
 import RouteIcon from '@mui/icons-material/Route';
+import { ViewKeys } from '../../utils/viewProviderContext';
 
 export default function RecoveryView() {
+    const activeContext = useActiveMission();
 	const breadCrumbs: Breadcrumb[] = [
-		{ name: "New Mission", path: "/", active: false },
-		{ name: "Recovery", path: "/", active: true }
+		{ name: "Ground Support", viewKey: ViewKeys.PLATFORM_SELECTION_KEY, active: false },
+        { name: activeContext.rocket.Name, viewKey: ViewKeys.ROCKET_DETAILS_KEY, active: false },
+		{ name: activeContext.activeMission.Name || "New Mission", viewKey: ViewKeys.ACTIVE_FLIGHT_KEY, active: true },
+		{ name: "Recovery", viewKey: ViewKeys.ACTIVE_FLIGHT_KEY, active: true }
 	];
 
     const [detailsOpen, setDetailsOpen] = useState(false);
 
-    const activeContext = useActiveMission();
 
     const defaultProps = {
         center: {
@@ -45,14 +48,14 @@ export default function RecoveryView() {
 			gap={3}
 		>
 			<Grid container>
-				<Header breadCrumbs={breadCrumbs} />
+				<Header icon='ROCKET_MONITORING' breadCrumbs={breadCrumbs} />
 			</Grid>
             <Grid item>
                 <Paper elevation={2} sx={{ padding: 2 }}>
                     <Stack direction="row" spacing={5} justifyContent={'space-between'} alignItems={'center'}>
                         <Stack direction="row" alignItems={'center'} spacing={2}>
                             <RouteIcon color={'primary'} /> 
-                            <Typography align='left' variant='h6'>
+                            <Typography align='left' variant='h5'>
                                 {activeContext.activeMission.Name || 'Mission Not found'}
                             </Typography>
                         </Stack>

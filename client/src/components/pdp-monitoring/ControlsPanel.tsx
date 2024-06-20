@@ -6,7 +6,7 @@ import ValveControl from './ValveControlSwitch';
 const ControlsPanel: React.FC = () => (
     <Paper
         elevation={2}
-        sx={{ padding: 2, width: "fit-content" }}
+        sx={{ padding: 2, width: "fit-content", height: "fit-content"}}
     >
         <FormControl component="fieldset">
             <Stack direction={'row'}>
@@ -29,6 +29,7 @@ const ControlsPanel: React.FC = () => (
                 label={<Typography alignSelf='start'>Run Tank</Typography>}
                 labelPlacement='top' 
             />
+            <Button fullWidth variant='contained' color="error" sx={{ marginTop: 2, fontSize: 40, fontWeight: 600 }}>Abort</Button>
         </FormControl>
     </Paper>
 );

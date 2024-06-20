@@ -1,6 +1,0 @@
-flask==2.2.2
-requests
-shutil
-flask_socketio 
-gevent 
-gevent-websocket

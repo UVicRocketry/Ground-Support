@@ -7,16 +7,19 @@ import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import { IDataConfig } from '../../utils/entities';
 import api from '../../services/api';
 import ModuleStatus from '../../components/ModuleNew';
-import TelemetryLog from '../../components/logging/TelemetryLog';
+import { ViewKeys } from '../../utils/viewProviderContext';
+
 
 export default function FlightView() {
 	
+	const context = useActiveMission();
 	const breadCrumbs: Breadcrumb[] = [
-		{ name: "New Mission", path: "/", active: false },
-		{ name: "Flight", path: "/", active: true }
+		{ name: "Ground Support", viewKey: ViewKeys.PLATFORM_SELECTION_KEY, active: false },
+		{ name: context.rocket.Name, viewKey: ViewKeys.ROCKET_DETAILS_KEY, active: false },
+		{ name: context.activeMission.Name || "New Mission", viewKey: ViewKeys.ACTIVE_FLIGHT_KEY, active: true },
+		{ name: "Flight", viewKey: ViewKeys.ACTIVE_FLIGHT_KEY, active: true }
 	];
 
-	const context = useActiveMission();
 
 	const [dataConfigs, setDataConfigs] = useState<IDataConfig[]>([]);
 
@@ -44,14 +47,14 @@ export default function FlightView() {
 			gap={3}
 		>
 			<Grid container>
-				<Header breadCrumbs={breadCrumbs} />
+				<Header icon='ROCKET_MONITORING' breadCrumbs={breadCrumbs} />
 			</Grid>
 			<Grid item>
                 <Paper elevation={2} sx={{ padding: 2 }}>
                     <Stack direction="row" spacing={5} justifyContent={'space-between'} alignItems={'center'}>
                         <Stack direction="row" alignItems={'center'} spacing={2}>
 							<AirplaneTicketIcon sx={{ color: 'uvr.red' }} />
-                            <Typography align='left' variant='h6'>
+                            <Typography align='left' variant='h5'>
                                 {context.activeMission.Name + ' Flight Report'|| 'Mission Not found'}
                             </Typography>
                         </Stack>

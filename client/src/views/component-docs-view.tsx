@@ -14,6 +14,7 @@ import { components } from '../utils/component-documentation';
 
 // Components
 import Header, { Breadcrumb } from "../components/Header";
+import { ViewKeys } from "../utils/viewProviderContext";
 
 const drawerHeight = '10vh';
 
@@ -25,8 +26,8 @@ export default function ComponentDocs() {
 	};
     const [ currentComponent, setCurrentComponent ] = useState<DocumentationProps>(components[0]);
 	const breadCrumbs: Breadcrumb[] = [
-		{ name: "Component Docs", path: "/", active: false },
-		{ name: currentComponent.Name, path: "/", active: true }
+		{ name: "Ground Support", viewKey: ViewKeys.PLATFORM_SELECTION_KEY, active: false },
+		{ name: "Component Docs", viewKey: ViewKeys.COMPONENT_DOCUMENT_KEY, active: true }
 	];
 
 	const colors: string[] = [
@@ -77,7 +78,7 @@ export default function ComponentDocs() {
 					>
 						{/* Page Header */}
 						<Grid item>
-							<Header breadCrumbs={breadCrumbs} />
+							<Header icon="PLATFORM_HUB" breadCrumbs={breadCrumbs} />
 						</Grid>
 
 						<Grid container justifyContent="center" alignItems="center" style={{ height: '80%', overflowY: 'scroll', padding: 16 }}>

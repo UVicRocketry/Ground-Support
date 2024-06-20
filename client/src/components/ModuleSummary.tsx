@@ -31,7 +31,7 @@ const ModuleSummary: React.FC<ModuleSummaryProps> = (props: ModuleSummaryProps) 
                 onClick={() => setExpand(expand.map((e, i) => !e))}
             >
                 <Stack direction="row" justifyContent={'space-between'} alignItems={'center'} spacing={2}>
-                    <Typography align='left' variant='h6'>
+                    <Typography align='left' variant='h5'>
                         {Module.Name || 'Mission Not found'}
                     </Typography>
                     <SensorsIcon />

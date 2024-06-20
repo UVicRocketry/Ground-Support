@@ -2,7 +2,8 @@ import {
     createContext, 
     PropsWithChildren, 
     useContext, 
-    useReducer
+    useReducer,
+    useState
 } from 'react';
 import { 
     IMission,
@@ -12,6 +13,12 @@ import {
 import { formatPacket, IAprsTelemetryPacket, ILoggedTelemetryPacket } from './TelemetryTypes';
 
 export interface IActiveMissionContext {
+    missionId: string;
+    updateMissionId: (id: string) => void;
+    rocketId: string;
+    updateRocketId: (id: string) => void;
+    dataConfigId: string;
+    updateDataConfigId: (id: string) => void;
     activeMission: IMission;
     updateMission: (payload: IMissionPopulated | IMission) => void;
     rocket: IRocketPopulated;
@@ -21,6 +28,12 @@ export interface IActiveMissionContext {
 }
 
 export const ActiveContext = createContext<IActiveMissionContext>({
+    missionId: '',
+    updateMissionId: (id: string) => null,
+    rocketId: '',
+    updateRocketId: (id: string) => null,
+    dataConfigId: '',
+    updateDataConfigId: (id: string) => null,
     activeMission: {} as IMission,
     updateMission: (payload: IMissionPopulated | IMission) => null,
     rocket: {} as IRocketPopulated,
@@ -66,6 +79,21 @@ export const ActiveMissionProvider = ({ children }: PropsWithChildren<any>) => {
     const [rocket, rocketDispatch] = useReducer(rocketReducer, {} as IRocketPopulated);
     const [activeMission, activeMissionDispatch] = useReducer(missionReducer, {} as IMissionPopulated);
     const [logs, logsDispatch] = useReducer(logsReducer, [] as ILoggedTelemetryPacket[]);
+    const [missionId, setMissionId] = useState<string>('');
+    const [rocketId, setRocketId] = useState<string>('');
+    const [dataConfigId, setDataConfigId] = useState<string>('');
+
+    const updateDataConfigId = (id: string) => {
+        setDataConfigId(id);
+    }
+
+    const updateMissionId = (id: string) => {
+        setMissionId(id);
+    }
+
+    const updateRocketId = (id: string) => {
+        setRocketId(id);
+    }
 
     const updateLogs = (log: IAprsTelemetryPacket) => {
         logsDispatch({type: 'addLog', payload: log});
@@ -81,7 +109,13 @@ export const ActiveMissionProvider = ({ children }: PropsWithChildren<any>) => {
 
     return(
         <ActiveContext.Provider 
-            value={{ 
+            value={{
+                dataConfigId,
+                updateDataConfigId,
+                missionId,
+                updateMissionId,
+                rocketId,
+                updateRocketId,
                 activeMission, 
                 rocket, 
                 logs, 

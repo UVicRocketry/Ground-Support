@@ -7,6 +7,7 @@ import api from "../../services/api";
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import WifiTetheringIcon from '@mui/icons-material/WifiTethering';
 import ForumIcon from '@mui/icons-material/Forum';
+import SettingsInputComponentIcon from '@mui/icons-material/SettingsInputComponent';
 
 // Panels
 import ControlsPanel from "../../components/pdp-monitoring/ControlsPanel";
@@ -21,10 +22,13 @@ import ConnectionDialog from "../../components/pdp-monitoring/ConnectionDialog";
 import { Chat, InsertInvitation, Settings } from "@mui/icons-material";
 import { useMonitoringSocketContext } from "../../utils/monitoring-system/monitoring-socket-context";
 import EngineLogDialog from "../../components/logging/EngineLog";
-import ConfigurationDialog from "../../components/pdp-monitoring/ConfigurationDialog";
+import ConfigurationDialog, { IConfiguration } from "../../components/pdp-monitoring/ConfigurationDialog";
 import groundSupportDarkMode from  "../../static/images/groundSupportDarkMode.svg"
 import useWebSocket from "react-use-websocket";
 import { ControlsActionTypes, ControlsCommandTypes, ControlsValveTypes, IControlsPacket, PacketType } from "../../utils/monitoring-system/monitoring-types";
+import { ViewKeys } from "../../utils/viewProviderContext";
+import FeedSystem from "../../components/pdp-monitoring/feed-system/FeedSystem";
+import { ReactFlowProvider } from "reactflow";
 
 interface IPhoneViewProps {
    openSettings: () => void;
@@ -70,6 +74,7 @@ const PhoneView: React.FC<IPhoneViewProps> = (props: IPhoneViewProps) => {
 interface IComputerViewProps {
     openSettings: () => void;
     openLog: () => void;
+    configuration: IConfiguration;
 }
 
 const ComputerView: React.FC<IComputerViewProps> = (props: IComputerViewProps) => {
@@ -81,14 +86,11 @@ const ComputerView: React.FC<IComputerViewProps> = (props: IComputerViewProps) =
 	];
     const socketContext = useMonitoringSocketContext();
 	const breadCrumbs: Breadcrumb[] = [
-		{ name: 'Rocket Selection', path: '/', active: false },
-		{ name: 'PDP Monitoring', path: '/', active: true }
+		{ name: 'Ground Support', viewKey: ViewKeys.PLATFORM_SELECTION_KEY, active: false },
+		{ name: 'Engine Monitoring', viewKey: ViewKeys.PDP_MONITORING_KEY, active: true }
 	];
     
     const [currentPacket, setCurrentPacket] = useState({});
-    const [openConnection, setOpenConnection] = useState(false);
-    const [openSettings, setOpenSettings] = useState(false);
-    const [openLog, setOpenLog] = useState(false);
 
     useEffect(() => {
         if (currentPacket) {
@@ -151,98 +153,82 @@ const ComputerView: React.FC<IComputerViewProps> = (props: IComputerViewProps) =
         <Box sx={{ width: '100vw', height: '100vh' }}>
             <Stack
                 height={'100%'}
-                padding={3}
+                padding={4}
                 direction="column"
-                gap={3}
+                gap={4}
                 overflow={'none'}
             >
-                {/* Page Header */}
-                <Grid item >
-                    <Header breadCrumbs={breadCrumbs} />
-                </Grid>
-                {/* Rocket Title */}
-                <Grid item>
-                    <Paper elevation={2} sx={{ padding: 2 }}>
-                        <Stack direction="row" alignItems={'center'} justifyContent={'space-between'}>
-                            <Stack direction="row" alignItems={'center'} spacing={2}>
-                                <LocalFireDepartmentIcon color={'primary'} /> 
-                                <Typography align='left' variant='h6'>
-                                    PDP Monitoring System
-                                </Typography>
-                            </Stack>
-                            <Stack direction="row" spacing={2}>
-                                <Tooltip title="PDP Configuration" placement="top" arrow followCursor>
-                                    <Button variant={'contained'} onClick={() =>props.openSettings()}>
-                                        <Settings />
-                                    </Button>
-                                </Tooltip>
+                <Stack direction="row" alignItems={'center'} justifyContent={'space-between'}>
+                    <Header icon="ENGINE_MONITORING" breadCrumbs={breadCrumbs} />
+                    <Stack direction="row" spacing={1}>
+                        <Tooltip title="PDP Configuration" placement="top">
+                            <Button variant={'text'} onClick={() =>props.openSettings()}>
+                                <Settings />
+                            </Button>
+                        </Tooltip>
+                        <Button 
+                            variant={'text'}
+                            onClick={() => props.openLog()}
+                            >
+                            <ForumIcon />
+                        </Button>
+                        <ButtonGroup
+                            variant="contained"
+                        >
+                            <Tooltip
+                                title={"LabJack Status"}
+                            >
                                 <Button 
-                                    variant={'contained'}
-                                    onClick={() => props.openLog()}
+                                    disabled={!socketContext.isLabJackOn} 
+                                    color={"success"}
+                                    aria-readonly
                                     >
-                                    <ForumIcon />
+                                        LabJack 
                                 </Button>
-                                <ButtonGroup>
-                                    <Tooltip
-                                        title={"LabJack Status"}
-                                    >
-                                        <Button 
-                                            disabled={!socketContext.isLabJackOn} 
-                                            color={"success"}
-                                            aria-readonly
-                                            >
-                                                LabJack 
-                                        </Button>
-                                    </Tooltip>
-                                    <Tooltip title={"Serial Status"}>
-                                        <Button 
-                                            disabled={!socketContext.isSerialOn} 
-                                            aria-readonly
-                                            color={"success"}
-                                        >
-                                            Serial
-                                        </Button>
-                                    </Tooltip>
-                                    <Tooltip title={"Valve Cart Status"}>
-                                        <Button 
-                                            disabled={!socketContext.isConnected} 
-                                            color={"success"}
-                                        >
-                                            Valve Cart
-                                        </Button>
-                                    </Tooltip>
-                                    <Button 
-                                        variant="contained" 
-                                        size={'large'} 
-                                        startIcon={<WifiTetheringIcon/>} 
-                                        sx={{ width: 180 }}
-                                        onClick={() => {
-                                            // setOpenConnection(!openConnection);  
-                                            socketContext.toggleConnection();
-                                        }}
-                                    >
-                                        {socketContext.connect ? "Disconnect" : "Connect"}
-                                    </Button>
-                                </ButtonGroup>
-                            </Stack>
-                        </Stack>
-                    </Paper>
-                </Grid>
-                <Grid item alignItems={'center'} width={"100%"}>
-                    <Stack direction="row" spacing={2}>
-                        <Stack direction="column" spacing={2} alignItems={'center'}>
-                            <ControlsPanel />
-                            <StartSequencePanel />
-                        </Stack>
-                        <EngineLogDialog dialog={false} isOpen={false} onClose={()=>{}}/>
+                            </Tooltip>
+                            <Tooltip title={"Serial Status"}>
+                                <Button 
+                                    disabled={!socketContext.isSerialOn} 
+                                    aria-readonly
+                                    color={"success"}
+                                >
+                                    Serial
+                                </Button>
+                            </Tooltip>
+                            <Tooltip title={"Valve Cart Status"}>
+                                <Button 
+                                    disabled={!socketContext.isConnected} 
+                                    color={"success"}
+                                >
+                                    Valve Cart
+                                </Button>
+                            </Tooltip>
+                            <Button 
+                                variant="contained" 
+                                size={'large'} 
+                                startIcon={<WifiTetheringIcon/>} 
+                                sx={{ width: 180 }}
+                                onClick={() => {
+                                    // setOpenConnection(!openConnection);  
+                                    socketContext.toggleConnection();
+                                }}
+                            >
+                                {socketContext.connect ? "Disconnect" : "Connect"}
+                            </Button>
+                        </ButtonGroup>
                     </Stack>
-                </Grid> 
-
+                </Stack>
+                <Stack direction="row" spacing={2} height={'100%'}>
+                    { props.configuration.feedSystemVisualPanel && <ReactFlowProvider><FeedSystem /></ReactFlowProvider>}
+                    { props.configuration.controlsPanel && <ControlsPanel />}
+                    { props.configuration.instrumentationPanel && <InstrumentationPanel />}
+                </Stack>
             </Stack>
             <div style={{ position: 'fixed', bottom: 0, width: '100%' }}>
                 {colors.map((color) => {
                     return (
                         <div
+                            key={color}
                             style={{
                                 backgroundColor: color,
                                 width: '25%',
@@ -258,14 +244,7 @@ const ComputerView: React.FC<IComputerViewProps> = (props: IComputerViewProps) =
     );
 }
 
-interface ViewProviderProps {
-    rocketId?: string;
-    missionId?: string;
-    backToRocketSelection: () => void;
-}
-
-const EngineMonitoringView: React.FC<ViewProviderProps> = (props: ViewProviderProps) => {
-    // const { rocketId, missionId, backToRocketSelection } = props;
+const EngineMonitoringView: React.FC = () => {
     const theme = useTheme();
     const isNotMobile = useMediaQuery(theme.breakpoints.up('sm'));
 
@@ -276,6 +255,12 @@ const EngineMonitoringView: React.FC<ViewProviderProps> = (props: ViewProviderPr
     const [openConnection, setOpenConnection] = useState(false);
     const [openSettings, setOpenSettings] = useState(false);
     const [openLog, setOpenLog] = useState(false);
+
+    const [panelConfiguration, setPanelConfiguration] = useState({
+        controlsPanel: false,
+        instrumentationPanel: false,
+        feedSystemVisualPanel: true
+    });
 
     useEffect(() => {
         if (currentPacket) {
@@ -294,6 +279,7 @@ const EngineMonitoringView: React.FC<ViewProviderProps> = (props: ViewProviderPr
                 <ComputerView 
                     openSettings={() => setOpenSettings(true)}
                     openLog={() => setOpenLog(true)}
+                    configuration={panelConfiguration}
                 />
             }
             
@@ -309,6 +295,8 @@ const EngineMonitoringView: React.FC<ViewProviderProps> = (props: ViewProviderPr
             />
             <ConfigurationDialog 
                 isOpen={openSettings} 
+                configuration={panelConfiguration}
+                setConfiguration={setPanelConfiguration}
                 onClose={() => setOpenSettings(false)}
             />
         </>

@@ -1,57 +1,82 @@
 import React, {useCallback, useEffect, useState} from "react";
-import { Button, Dialog, TextField, Stack, DialogContent, Typography, DialogActions, DialogTitle, Select, MenuItem, InputLabel, Tooltip, Chip } from "@mui/material";
-import { webusb } from 'usb';
+import { Button, Dialog, TextField, Stack, DialogContent, Typography, DialogActions, DialogTitle, Select, MenuItem, InputLabel, Tooltip, Chip, IconButton, ButtonGroup } from "@mui/material";
 import { Info } from "@mui/icons-material";
+import CloseIcon from '@mui/icons-material/Close';
 
+export interface IConfiguration {
+    controlsPanel: boolean;
+    instrumentationPanel: boolean;
+    feedSystemVisualPanel: boolean;
+}
 
 interface ConfigurationDialogProps {
     isOpen: boolean;
     onClose: () => void;
+    configuration: IConfiguration;
+    setConfiguration: (config: IConfiguration) => void;
 }
 
 const ConfigurationDialog: React.FC<ConfigurationDialogProps> = (props: ConfigurationDialogProps) => {
-    const {isOpen, onClose} = props;
-    const [open, setOpen] = useState<boolean>(props.isOpen);
+    const { isOpen, onClose, configuration, setConfiguration } = props;
 
-    const [controlsPanel, setControlsPanel] = useState<boolean>(false);
-    const [instrumentationPanel, setInstrumentationPanel] = useState<boolean>(false);
-    const [feedSystemVisual, setFeedSystemVisual] = useState<boolean>(false);
+    const [controls, setControlsPanel] = useState<boolean>(configuration.controlsPanel);
+    const [instrumentation, setInstrumentationPanel] = useState<boolean>(configuration.instrumentationPanel);
+    const [feedSystemVisual, setFeedSystemVisual] = useState<boolean>(configuration.feedSystemVisualPanel);
 
-    useEffect(() => {
-        // readUSBs();
-        console.log(isOpen)
-    }, [isOpen]);
-
-    const handleClose = () => {
-        setOpen(false);
-        onClose();
-    }
 
     const handleSave = () => {
         // Save changes
-        handleClose();
+        setConfiguration({
+            controlsPanel: controls,
+            instrumentationPanel: instrumentation,
+            feedSystemVisualPanel: feedSystemVisual
+        });
+        onClose();
     }
 
     return(
         <Dialog 
-            open={props.isOpen}
-            onClose={handleClose}
+            open={isOpen}
+            onClose={onClose}
+            sx={{ padding: 2 }}
         >
-            <DialogTitle id="alert-dialog-title">
-                {"Panel Configuration"}
+            <DialogTitle id="alert-dialog-title" width={300}>
+                <Stack direction="row" justifyContent="space-between">
+                    {"Panel Configuration"}
+                    <IconButton aria-label="info" size="small" onClick={() => onClose()}>
+                        <CloseIcon />
+                    </IconButton>
+                </Stack>
             </DialogTitle>
             <DialogContent>
-                <Stack gap={2}>
-                    <Chip label="Control Panel" variant={controlsPanel ? "filled" : "outlined"} onClick={() => setControlsPanel(controlsPanel => !controlsPanel)} />
-                    <Chip label="Instrumentation Panel" variant={instrumentationPanel? "filled" : "outlined"} onClick={() => setInstrumentationPanel(instrumentationPanel => !instrumentationPanel)} />
-                    <Chip label="Feed System Visual" variant={feedSystemVisual? "filled" : "outlined"} onClick={() => setFeedSystemVisual(feedSystemVisual => !feedSystemVisual)} />
-                </Stack>
+                <ButtonGroup fullWidth orientation="vertical" variant="contained">
+                    <Button 
+                        color={controls ? "primary" : "grey"}
+                        onClick={() => setControlsPanel(!controls)}
+                    >
+                        Controls
+                    </Button>
+                    <Button 
+                        color={instrumentation ? "primary" : "grey"}
+                        onClick={() => setInstrumentationPanel(!instrumentation)}
+                    >
+                        Instrumentation
+                    </Button>
+                    <Button 
+                        color={feedSystemVisual ? "primary" : "grey"}
+                        onClick={() => setFeedSystemVisual(!feedSystemVisual)}
+                    >
+                        Feed System Visual
+                    </Button>
+                </ButtonGroup>
             </DialogContent>
             <DialogActions>
-                <Button variant={"contained"} component="label" onClick={() => handleClose()}>
-                    Close
-                </Button>
-                <Button variant={"contained"} component="label" onClick={() => handleSave()}>
+                <Button 
+                    variant={"contained"} 
+                    component="label" 
+                    onClick={() => handleSave()} 
+                    fullWidth
+                >
                     Save
                 </Button>
             </DialogActions>

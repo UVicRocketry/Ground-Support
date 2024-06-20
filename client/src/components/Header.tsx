@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from "react";
 import Typography from '@mui/material/Typography';
 import { Breadcrumbs, Stack, Link, useTheme } from "@mui/material";
-import groundSupport from "../static/images/groundSupport.svg";
-import groundSupportDarkMode from "../static/images/groundSupportDarkMode.svg";
+
+// Logos
+import GroundSupport from "../static/images/groundSupportDarkMode.svg";
+import EngineMonitoringSystem from "../static/images/MonitoringSystemLogo.svg"
+import PlatformHub from "../static/images/PlatformHubLogo.png";
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import { ViewKeys, useViewProvider } from "../utils/viewProviderContext";
 
 export interface Breadcrumb {
     name: string;
-    path?: string;
+    viewKey: ViewKeys;
     active: boolean;
 };
 
 interface HeaderProps {
     breadCrumbs: Breadcrumb[];
+    icon: "ROCKET_MONITORING" | "ENGINE_MONITORING" | "PLATFORM_HUB"
 };
 
 const handleClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -19,22 +25,31 @@ const handleClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
 };
 
 const Header: React.FC<HeaderProps> = (props: HeaderProps) => {
-    const isDarkTheme = useTheme().palette.mode === 'dark';
+    const viewProviderContext = useViewProvider();
     const crumbs = props.breadCrumbs.map((crumb: Breadcrumb) => {
         if (!crumb.active) {
             return (
                 <Link
+                    key={crumb.name} 
+                    sx={{ cursor: 'pointer' }}
                     underline="hover"
                     color="inherit"
-                    href={ crumb.path || "/" }
+                    variant="h5"
+                    fontWeight={600}
+                    onClick={() => {
+                        viewProviderContext.updateViewKey(crumb.viewKey);
+                    }}
                 >
                     { crumb.name }
                 </Link>
             );
         } else {
             return (
-                <Typography 
+                <Typography
+                    key={crumb.name} 
                     color="text.primary"
+                    variant="h5"
+                    fontWeight={600}
                 >
                     { crumb.name }
                 </Typography>
@@ -45,20 +60,25 @@ const Header: React.FC<HeaderProps> = (props: HeaderProps) => {
     return (
         <Stack
             direction="row"
-            spacing={2}
-            alignItems="flex-start" 
+            spacing={1}
+            alignItems="center" 
         >
-            <img src={isDarkTheme ? groundSupportDarkMode : groundSupport} alt="Ground Support Icon" height={80}/>
-            <Stack
-                direction="column"
-                alignItems="flex-start" 
-                spacing={1}
+            <img 
+                src={props.icon == "PLATFORM_HUB" 
+                    ? PlatformHub 
+                    : props.icon == "ENGINE_MONITORING"
+                        ? EngineMonitoringSystem
+                        : GroundSupport} 
+                alt="Icon" 
+                height={45} 
+                onClick={() => viewProviderContext.updateViewKey(ViewKeys.PLATFORM_SELECTION_KEY)}
+            />
+            <Breadcrumbs 
+                onClick={handleClick}
+                separator={<NavigateNextIcon fontSize="small" />}
             >
-                <Typography variant="h3" sx={{ fontWeight: 600 }}>Ground Support</Typography>
-                <Breadcrumbs onClick={handleClick}>
-                    { crumbs }
-                </Breadcrumbs>
-            </Stack>
+                { crumbs }
+            </Breadcrumbs>
         </Stack>
     );
 };
