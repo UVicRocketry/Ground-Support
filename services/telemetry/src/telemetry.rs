@@ -58,13 +58,19 @@ pub async fn start_telemetry(state_ref: Arc<Mutex<State>>) -> io::Result<()> {
     let frequency = state_ref.lock().unwrap().frequency;
     println!("Starting telemetry on {}", frequency);
 
+    let decode_script_path = if state_ref.lock().unwrap().system_binaries {
+        "./tools/decode.sh"
+    } else {
+        "./tools/decode_with_sys_bin.sh"
+    };
+
     let mut decode_aprs = Command::new("sh")
-        .arg("./tools/decode_test.sh")
+        .arg(decode_script_path)
         // .arg(frequency.to_string())
         .stdout(Stdio::piped())
         .spawn()
         .expect("failed to start decoder");
-    
+
     let mut child_out = BufReader::new(decode_aprs.stdout.as_mut().unwrap());
     let mut readbuf = vec![0; 256];
 

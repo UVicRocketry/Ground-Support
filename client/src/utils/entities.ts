@@ -107,3 +107,14 @@ export interface IDataPoint {
     FieldId: string;
     PacketNumber: number;
 };
+
+export interface ITelemetryPacket {
+    _id?: string;
+    Data: {
+        Altitude: number;
+        Latitude?: number;
+        Longitude?: number;
+        CallSign?: string;
+    };
+    PacketId: number;
+}

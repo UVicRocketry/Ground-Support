@@ -28,7 +28,8 @@ router.put('/data/:id', async (req: Request, res: Response, next: NextFunction) 
                 { 
                     $push: {
                         Data: req.body
-                    }
+                    },
+                    Published: true
                 },
                 {
                     new: true,

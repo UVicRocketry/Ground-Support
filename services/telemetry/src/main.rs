@@ -43,6 +43,10 @@ struct Cli {
     /// server. This is currently meant for testing purposes.
     #[clap(long)]
     client: bool,
+    /// When this option is set, the binaries installed on the system will be
+    /// used instead of the ones in the repo.
+    #[clap(long)]
+    system_binaries: bool
 }
 
 /// A transmission protocol that is used to transmit data from the rocket.

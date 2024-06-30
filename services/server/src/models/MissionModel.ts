@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 import { isValidLongitude, isValidLatitude } from "../library/CoordinateValidation";
-import { DataPointSchema, IDataPoint } from "./DataPointModel";
+import { ITelemetryPacket, TelemetryPacketSchema } from "./TelemetryPacketModel";
 
 interface ICoordinates {
     Latitude: number;
@@ -16,7 +16,7 @@ export interface IMission {
     LaunchAltitude: number;
     Components: [Types.ObjectId];
     Published: boolean;
-    Data?: IDataPoint[];
+    Data?: ITelemetryPacket[];
 };
 
 export interface IMissionModel extends IMission, Document { };
@@ -73,7 +73,10 @@ export const MissionSchema: Schema = new Schema(
             default: false,
             required: true
         },
-        Data: [DataPointSchema]
+        Data: {
+            type: [TelemetryPacketSchema],
+            required: false
+        }
     },
     {
         versionKey: false,

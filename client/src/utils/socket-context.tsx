@@ -1,37 +1,64 @@
-import { createContext, PropsWithChildren, useContext, useEffect, useState, useReducer } from 'react';
+import { Alert, Snackbar } from '@mui/material';
+import { 
+	createContext, 
+	PropsWithChildren, 
+	useContext, 
+	useEffect, 
+	useState, 
+	useReducer 
+} from 'react';
+import useWebSocket from 'react-use-websocket';
 
-interface IPacket {
-	Data: {};
-	Type: string;
+export type Packet = {
+	data: {
+		altitude: number;
+		latitude?: number;
+		longitude?: number;
+		call_sign?: string;
+	};
+	id: number;
 }
 
+enum Protocol {
+	APRS = 'APRS',
+	LoRa = 'LoRa'
+}
+
+type IncomingPacket = {
+	type: 'data' | 'no_data_available';
+	packets: Packet[];
+	last_id: number;
+}; 
+
 export interface SocketContext {
-	logs: string[];
-	aprsPacket: IPacket;
-	loRaPacket: IPacket;
-	setPacketFrequency: (frequency: number) => void;
-	setProtocol: (protocol: string) => void;
+	gpsLock: boolean;
+	isConnected: boolean;
+	packetStreamingInterval: number;
+	updatePacketStreamingInterval: (interval: number) => void;
+	toggleConnection: () => void;
+	logs: Packet[];
+	packet: Packet;
+	frequency: number;
+	updateFrequency: (frequency: number) => void;
+	protocol: string;
+	updateProtocol: (protocol: Protocol) => void;
 }
 
 export const Context = createContext<SocketContext>({
+	gpsLock: false,
+	isConnected: false,
+	packetStreamingInterval: 2,
+	updatePacketStreamingInterval: (interval: number) => {},
+	toggleConnection: () => {},
 	logs: [],
-	aprsPacket: {} as IPacket,
-	loRaPacket: {} as IPacket,
-	setPacketFrequency: (frequency: number) => {},
-	setProtocol: (protocol: string) => {}
+	packet: {} as Packet,
+	frequency: 433.92,
+	updateFrequency: (frequency: number) => {},
+	protocol: Protocol.APRS,
+	updateProtocol: (protocol: Protocol) => {}
 });
 
-function aprsReducer(state: IPacket, action: { type: string; payload: any }) {
-	switch (action.type) {
-		case 'SET_PACKET':
-			return action.payload;
-
-		default:
-			throw new Error(`Unhandled action type: ${action.type}`);
-	}
-}
-
-function loraReducer(state: IPacket, action: { type: string; payload: any }) {
+function packetReducer(state: Packet, action: { type: string; payload: any }) {
 	switch (action.type) {
 		case 'SET_PACKET':
 			return action.payload;
@@ -42,59 +69,103 @@ function loraReducer(state: IPacket, action: { type: string; payload: any }) {
 }
 
 export const SocketGateway = ({ children }: PropsWithChildren<any>) => {
-	const [logs, setLogs] = useState<string[]>([]);
-	const [aprsPacket, aprsDispatch] = useReducer(aprsReducer, {} as IPacket);
-	const [loRaPacket, loraDispatch] = useReducer(loraReducer, {} as IPacket);
-	const [packetFrequency, setPacketFrequency] = useState<number>(3);
+	const [logs, setLogs] = useState<Packet[]>([]);
+	const [packet, packetDispatch] = useReducer(packetReducer, {} as Packet);
+	const [frequency, setFrequency] = useState<number>(433.92);
 	const [protocol, setProtocol] = useState<string>('APRS');
+    const [isConnected, setIsConnect] = useState<boolean>(false);
+	const [gpsLock, setGpsLock] = useState<boolean>(false);
+	const [wsError, setWsError] = useState<any | null>(null);
+	const [packetStreamingInterval, setPacketStreamingInterval] = useState<number>(2); // Packets collected from the telemetry server sent every X seconds
 
 	const port = import.meta.env.TELEMETRY_SERVER_PORT ? import.meta.env.TELEMETRY_SERVER_PORT : 9193;
-	const ws = new WebSocket(`ws://localhost:${port}`);
+	const [uri, setUri] = useState<string | null>(isConnected ? `ws://localhost:${9193}` : null);
 
-	const enableLiveMode = () => {
-		ws.send(JSON.stringify({ type: 'establish_stream', frequency: packetFrequency }));
+
+	const updateFrequency = (frequency: number) => {
+		setFrequency(frequency);
 	};
 
-	const changePacketFrequency = (frequency: number) => {
-		ws.send(JSON.stringify({ type: 'change_frequency', frequency: frequency }));
+	const updateProtocol = (protocol: Protocol) => {
+		setProtocol(protocol);
 	};
 
-	const changeProtocol = (protocol: string) => {
-		ws.send(JSON.stringify({ type: 'change_protocol', protocol: protocol }));
-	};
+	const updatePacketStreamingInterval = (interval: number) => {
+		setPacketStreamingInterval(interval);
+	}
 
-	useEffect(() => {
-		if (ws.readyState === ws.OPEN) {
-			changePacketFrequency(packetFrequency);
-		}
-	}, [packetFrequency]);
-
-	useEffect(() => {
-		if (ws.readyState === ws.OPEN) {
-			changeProtocol(protocol);
-		}
-	}, [protocol]);
-
-	ws.addEventListener('open', () => {
-		console.log('Socket Connected');
-		enableLiveMode();
+	const {
+		sendJsonMessage,
+        lastJsonMessage
+	} = useWebSocket(uri, {
+		shouldReconnect: (_) => isConnected,
+		onClose: (closeEvent) => {
+			setIsConnect(false);
+			console.log('Socket Closed:', closeEvent);
+		}, 
+		onError: (error) => {
+			setWsError(error);
+			console.log('Socket Error:', error);
+		},
+		onOpen: () => {
+			console.log('Telemetry socket Opened');
+			setIsConnect(true);
+			sendJsonMessage({ type: 'establish_stream', frequency: packetStreamingInterval });
+		},
+		share: true
 	});
 
-	ws.addEventListener('message', (message) => {
-		const data = JSON.parse(message.data);
-		console.log(data);
-	});
+	const toggleConnection = () => {
+        setIsConnect(prevIsConnected => {
+            if (prevIsConnected) {
+                // If the WebSocket is currently connected, disconnect it
+                setUri(null);
+            } else {
+                // If the WebSocket is currently disconnected, connect it
+                setUri(`ws://localhost:${port}`);
+            }
+            return !prevIsConnected;
+        });
+    };
+
+
+	const handleIncomingPacket = (data: IncomingPacket) => {
+		if (data.type === 'data') {
+			const packet = data.packets.find((packet) => packet.id === data.last_id);
+			packetDispatch({ type: 'SET_PACKET', payload: packet });
+			setLogs((prevLogs) => [...prevLogs, ...data.packets]);	
+		}
+	}
+
+	useEffect(() => {
+		if (lastJsonMessage) {
+			handleIncomingPacket(lastJsonMessage as IncomingPacket);
+		}
+	}, [lastJsonMessage]);
 
 	return (
 		<Context.Provider
 			value={{
+				isConnected,
+				gpsLock,
+				packetStreamingInterval,
+				updatePacketStreamingInterval,
+				toggleConnection,
 				logs,
-				aprsPacket,
-				loRaPacket,
-				setPacketFrequency,
-				setProtocol
+				packet,
+				frequency,
+				updateFrequency,
+				protocol,
+				updateProtocol
 			}}
 		>
+			<Snackbar
+				open={wsError !== null}
+				message="Could not connect to socket server"
+				autoHideDuration={6000}
+			>
+				<Alert variant='filled' severity="error" onClose={() => setWsError(null)}>Could not connect to socket server</Alert>				
+			</Snackbar>
 			{children}
 		</Context.Provider>
 	);

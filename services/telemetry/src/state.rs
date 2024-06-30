@@ -19,6 +19,8 @@ pub struct State {
     /// buffer. This offset is used to keep track of the first packet in the
     /// packet buffer.
     pub packet_buffer_offset: u64,
+    /// When true, system-wide binaries are used instead of the ones in the repo.
+    pub system_binaries: bool
 }
 
 impl State {
@@ -31,6 +33,7 @@ impl State {
             last_packet_id: None,
             packet_buffer: Vec::new(),
             packet_buffer_offset: 0,
+            system_binaries: false
         }
     }
 

@@ -6,17 +6,20 @@ import { ViewKeys, useViewProvider } from '../../utils/viewProviderContext';
 import { Alert, Chip, Icon, IconButton, Snackbar, Stack, Typography } from '@mui/material';
 import { CheckBox, CheckBoxOutlineBlank, ShowChart, Height, HorizontalRule, Edit, DateRange } from '@mui/icons-material';
 import MissionConfig from '../../components/MissionConfig';
+import { saveAs } from 'file-saver';
+import ExportMissionDataDialog from '../../components/rocket-monitoring/ExportMissionDataDialog';
 
 interface FormattedMissionData {
     _id?: string;
     Name: string;
     Date: Date;
-    IsTest: string;
+    IsTest: boolean;
     Longitude: number;
     Latitude: number;
     LaunchAltitude: Number;
-    Published: string;
+    Published: boolean;
     Components: string[];
+    Data?: any;
 }
 
 interface ITableColumns {
@@ -36,9 +39,16 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
     const [ selectedMissionId, setSelectedMissionId ] = useState<string | null>(null);
     const [missionEditDialog, setMissionEditDialog] = useState<boolean>(false);
     const [tableWarning, setTableWarning] = useState<boolean>(true);
-
+    const [exportMissionDataDialog, setExportMissionDataDialog] = useState<boolean>(false);
+    const [selectedMission, setSelectedMission] = useState<FormattedMissionData | null>(null)
     const viewProviderContext = useViewProvider();
     const activeMissionContext = useActiveMission();
+
+    const exportMissionData = (mission: FormattedMissionData) => {
+        if (mission.Data && mission.Published) {
+            setExportMissionDataDialog(true);
+        }
+    }
 
     const getMissions = useCallback(async () => {
         rocket.Missions.map(async (mission: IMission) => {
@@ -46,12 +56,13 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 _id: mission._id,
                 Name: mission.Name,
                 Date: mission.Date,
-                IsTest: String(mission.IsTest),
+                IsTest: mission.IsTest,
                 Longitude: mission.Coordinates.Longitude,
                 Latitude: mission.Coordinates.Latitude,
                 LaunchAltitude: mission.LaunchAltitude,
-                Published: String(mission.Published),
-                Components: mission.Components
+                Published: mission.Published,
+                Components: mission.Components,
+                Data: mission.Data,
             };
             if (missions.length === 0) {
                 missions.push(m);
@@ -69,15 +80,20 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
     const options: MUIDataTableOptions = {
         filter: true,
         responsive: 'standard',
-        onCellClick: (colData, cellMeta) => {
+        onCellClick: (_, cellMeta) => {
             if (cellMeta.colIndex === 0) {
                 return;
             }
-            console.log(colData, cellMeta);
-            console.log('Navigating to mission replay view');
+            setSelectedMission(missions[cellMeta.dataIndex])
             activeMissionContext.updateMission(rocket.Missions[cellMeta.dataIndex]);
             activeMissionContext.updateRocket(rocket);
-            viewProviderContext.updateViewKey(ViewKeys.ACTIVE_FLIGHT_KEY)
+            if (rocket.Missions[cellMeta.dataIndex].Published) {
+                exportMissionData(missions[cellMeta.dataIndex]);
+                // TODO: uncomment when view is completed
+                // viewProviderContext.updateViewKey(ViewKeys.MISSION_REPLAY_KEY);
+            } else {
+                viewProviderContext.updateViewKey(ViewKeys.ACTIVE_FLIGHT_KEY)
+            }
         }
     };
     
@@ -115,7 +131,7 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 filter: true,
                 sort: true,
                 viewColumns: true,
-                customBodyRender(value, tableMeta, updateValue) {
+                customBodyRender(value) {
                     return (
                         <Typography
                             variant="body1"
@@ -136,7 +152,7 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 filter: true,
                 sort: true,
                 viewColumns: true,
-                customBodyRender(value, tableMeta, updateValue) {
+                customBodyRender(value) {
                     return (
                         <Chip
                             icon={<DateRange />}
@@ -157,11 +173,12 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 filter: true,
                 sort: true,
                 viewColumns: true,
-                customBodyRender(value, tableMeta, updateValue) {
+                customBodyRender(value) {
+                    console.log(value);
                     return (
                         <Chip
-                            label={value === "true" ? "Test" : "Mission"}
-                            color={value === "true" ? "warning" : "primary"}
+                            label={value ? "Test" : "Mission"}
+                            color={value ? "warning" : "primary"}
                             sx={{
                                 borderRadius: 2,
                             }}
@@ -177,7 +194,7 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 filter: true,
                 sort: true,
                 viewColumns: true,
-                customBodyRender(value, tableMeta, updateValue) {
+                customBodyRender(value) {
                     return (
                         <Stack direction={'row'}>
                             <Height /> 
@@ -194,7 +211,7 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 filter: true,
                 sort: true,
                 viewColumns: true,
-                customBodyRender(value, tableMeta, updateValue) {
+                customBodyRender(value) {
                     return (
                         <Stack direction={'row'} spacing={1}>
                             <HorizontalRule /> 
@@ -211,7 +228,7 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 filter: true,
                 sort: true,
                 viewColumns: true,
-                customBodyRender(value, tableMeta, updateValue) {
+                customBodyRender(value) {
                     return (
                         <Stack direction={'row'} spacing={1}>
                             <ShowChart /> 
@@ -228,7 +245,7 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 filter: true,
                 sort: true,
                 viewColumns: true,
-                customBodyRender(value, tableMeta, updateValue) {
+                customBodyRender(value) {
                     return value ? (<CheckBox color='success' />) : (<CheckBoxOutlineBlank color='grey' />);                  
                 }
             }
@@ -258,6 +275,11 @@ const RocketDetailsTab: React.FC<Props> = (props: Props) => {
                 isOpen={missionEditDialog}
                 onClose={() => setMissionEditDialog(false)}
                 onSave={() => {}}
+            />
+            <ExportMissionDataDialog 
+                isOpen={exportMissionDataDialog}
+                onClose={() => setExportMissionDataDialog(false)}
+                mission={selectedMission as FormattedMissionData}
             />
         </>
     );
